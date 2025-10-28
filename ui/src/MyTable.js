@@ -5,13 +5,12 @@
     } from '@tanstack/react-table';
     import React, { useState, useEffect } from 'react';
     import { useSelector, useDispatch } from 'react-redux';
-    import { setPagination, setTableData, setPageCount } from './tableSlice';
+    import { setPagination, setTableData, setPageCount, setColumnFilters } from './tableSlice';
 
     const MyTable = () => {
 
       const dispatch = useDispatch();
-      const { data, pagination: {pageIndex, pageSize}, pageCount, sortBy, filters, globalFilter } = useSelector((state) => state.table);
-      console.log('pagecount', pageCount, 'data', data, pageIndex, pageSize);
+      const { data, pagination: {pageIndex, pageSize}, pageCount, columnFilters } = useSelector((state) => state.table);
       const [columnVisibility, setColumnVisibility] = useState({
         timestamp: true,
         attackerId: true,
@@ -93,17 +92,18 @@
       // Fetch data from your API
       useEffect(() => {
         const fetchData = async () => {
-          // Replace with your actual API call
-          const response = await fetch(
-            `/api/data?page=${pageIndex + 1}&limit=${pageSize}`
-          );
+          let url = `/api/data?page=${pageIndex + 1}&limit=${pageSize}`;
+          if (columnFilters?.length) {
+            url = `/api/data?page=${pageIndex + 1}&limit=${pageSize}&columnId=${columnFilters[0]?.id}&columnValue=${columnFilters[0]?.value}`;
+          }  
+          const response = await fetch(url);
           const result = await response.json();
           // setData(result.posts);
           dispatch(setTableData(result.posts));
           dispatch(setPageCount(result.pageCount));
         };
         fetchData();
-      }, [dispatch, pageIndex, pageCount, pageSize]); // Refetch when pagination state changes
+      }, [dispatch, pageIndex, pageCount, pageSize, columnFilters]); // Refetch when pagination state changes
 
       const table = useReactTable({
         data,
@@ -113,14 +113,21 @@
           columnVisibility,
           pageIndex,
           pageSize,
-          // pageCount,
+          columnFilters,
         },
+        manualFiltering: true,
+        manualSorting: true,
+        // manualGlobalFilter: true,
         // onPaginationChange: setPagination, // Update pagination state
         onPaginationChange: (updater) => {
           const newPagination = typeof updater === 'function' ? updater({ pageIndex, pageSize }) : updater;
           dispatch(setPagination(newPagination));
         }, // coming from redux store now
         manualPagination: true, // Crucial for server-side pagination
+        onColumnFiltersChange: (updater) => {
+          const newFiltering = typeof updater === 'function' ? updater() : updater;
+          dispatch(setColumnFilters(newFiltering));
+        },
         getCoreRowModel: getCoreRowModel(),
         onColumnVisibilityChange: setColumnVisibility,
       });
@@ -166,6 +173,16 @@
                     {headerGroup.headers.map((header) => (
                       <th className="px-4 py-2 text-left font-bold text-gray-700 border-b border-gray-300" key={header.id}>
                         {flexRender(header.column.columnDef.header, header.getContext())}
+                        {/* Column Filter Input */}
+                        {header.column.getCanFilter() ? (
+                          <input
+                            value={header.column.getFilterValue() ?? ''}
+                            onChange={(e) => {
+                              return header.column.setFilterValue(e.target.value)
+                            }                            }
+                            placeholder={`Filter ${header.column.id}`}
+                          />
+                        ) : null}
                       </th>
                     ))}
                   </tr>

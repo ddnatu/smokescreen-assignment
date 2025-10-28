@@ -9,16 +9,10 @@
     });
 
     app.get('/api/data', (req, res) => {
-        const pageCount = Math.ceil(sampleData.length / 10);
         let page = parseInt(req.query.page);
- 
-        if (!page) { page = 1;}
-        if (page > pageCount) {
-            page = pageCount
-        }
-        let tempData = sampleData.slice(page * 10 - 10, page * 10);
-        let transformedNewData = [];
-        tempData.forEach((m) => {
+
+        let propChangeData = [];
+        sampleData.forEach((m) => {
             let tempObj = {};
             tempObj['attackerId'] = m['attacker.id'];
             tempObj['attackerIp'] = m['attacker.ip'];
@@ -35,8 +29,27 @@
             tempObj['timestamp'] = m.timestamp;
             tempObj['severity'] = m.severity;
             tempObj['kill_chain_phase'] = m.kill_chain_phase;
-            transformedNewData.push(tempObj);
+            propChangeData.push(tempObj);
         });
+
+        let columnId = req.query?.columnId;
+        let columnValue = req.query?.columnValue;
+        let columnFilterData = propChangeData;
+
+        if (columnId && columnValue) {
+            columnFilterData = propChangeData.filter((f) => {
+                return f[`${columnId}`].includes(columnValue);
+            });
+        }
+        
+        const pageCount = Math.ceil(columnFilterData.length / 10);
+
+        if (!page) { page = 1;}
+        if (page > pageCount) {
+            page = pageCount
+        }
+        
+        let transformedNewData = columnFilterData.slice(page * 10 - 10, page * 10);
         res.json({
             "page": page,
             "pageCount": pageCount,

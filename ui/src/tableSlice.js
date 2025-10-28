@@ -9,7 +9,7 @@ const initialState = {
   },
   pageCount: 0,
   sorting: [],
-  globalFilter: '',
+  columnFilters: [],
   // Add other table state properties as needed
 };
 
@@ -30,12 +30,13 @@ const tableSlice = createSlice({
     setSorting: (state, action) => {
       state.sorting = action.payload;
     },
-    setGlobalFilter: (state, action) => {
-      state.globalFilter = action.payload;
+    setColumnFilters: (state, action) => {
+      state.columnFilters = action.payload;
+      console.log('state.columnFilters', action.payload);
     },
     // Add other reducers for updating table state
   },
 });
 
-export const { setTableData, setPagination, setPageCount, setSorting, setGlobalFilter } = tableSlice.actions;
+export const { setTableData, setPagination, setPageCount, setSorting, setColumnFilters } = tableSlice.actions;
 export default tableSlice.reducer;
